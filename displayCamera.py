@@ -1,8 +1,11 @@
 import cv2
 import numpy as np
+from ultralytics import YOLO
 
 displayList = ["2d", "3d"]
 flag = "2d"
+
+model = YOLO("Path/To/Your/yolov8x-seg.pt")
 
 # Camera intrinsic parameters
 camera_matrix = np.array([
@@ -91,8 +94,9 @@ try:
             # Clip the image
             clipped_frame = clip_image(undistorted_frame, offset_x, offset_y)
             
-            # Display the clipped image
-            cv2.imshow('2D Mode', clipped_frame)
+            results = model(clipped_frame , show=False, device=0, conf=0.5)
+            results_frame = results[0].plot(line_width=5, font_size=1)
+            cv2.imshow("YOLOv8 Inference", results_frame)
             
         elif flag == "3d":
             # Set offsets for left and right eye
