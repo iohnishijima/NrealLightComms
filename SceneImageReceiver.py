@@ -14,7 +14,7 @@ class SceneImageReceiver:
         # Initialize ZMQ context and socket
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PULL)
-        self.socket.RCVTIMEO = 300
+        # self.socket.RCVTIMEO = 300
 
         # Connect to appropriate IP
         if self.status:
@@ -32,7 +32,9 @@ class SceneImageReceiver:
                 image_data = message[4:]
                 arr = np.frombuffer(image_data, dtype=np.uint8)
                 img = cv2.imdecode(arr, flags=cv2.IMREAD_COLOR)
-                self.image_buffer_scene[:] = img
+                oriimg = np.frombuffer(self.image_buffer_scene.get_obj(), dtype=np.uint8).reshape((480, 640, 3))
+                np.copyto(oriimg, img)
+                # self.image_buffer_scene[:] = img
                 pre_data = img
             except zmq.error.Again:
                 if pre_data is not None:

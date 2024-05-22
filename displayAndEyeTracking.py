@@ -7,7 +7,7 @@ from PopupWindowConfirmation import Confirmation
 from multiprocessing import shared_memory
 from SceneImageReceiver import SceneImageReceiver
 import numpy as np
-import signal
+# import signal
 import sys
 
 def object_detection_process(shared_data, watch_gaze, popup_data, image_buffer,flag_data, image_buffer_scene):
@@ -45,8 +45,8 @@ def signal_handler(sig, frame, shm, shm_scene):
     sys.exit(0)
 
 def main():
-    signal.signal(signal.SIGINT, lambda sig, frame: signal_handler(sig, frame, shm, shm_scene))
-    signal.signal(signal.SIGTERM, lambda sig, frame: signal_handler(sig, frame, shm, shm_scene))
+    # signal.signal(signal.SIGINT, lambda sig, frame: signal_handler(sig, frame, shm, shm_scene))
+    # signal.signal(signal.SIGTERM, lambda sig, frame: signal_handler(sig, frame, shm, shm_scene))
     manager = multiprocessing.Manager()
     shared_data = {
         'ID': manager.Value('d', 0.0),
@@ -89,14 +89,16 @@ def main():
     
     if flag_data['glasses'].value == "STONE":
         max_image_size_scene = 640 * 480 * 3  # width * height * channels (BGR)
-        shm_scene = shared_memory.SharedMemory(create=True, size=max_image_size_scene)
-        image_buffer_scene = np.ndarray((480, 640, 3), dtype=np.uint8, buffer=shm_scene.buf)
+        shared_array = multiprocessing.Array('B', max_image_size_scene)
+        img_array = np.frombuffer(shared_array.get_obj(), dtype=np.uint8).reshape((480, 640, 3))
+        # shm_scene = shared_memory.SharedMemory(create=True, size=max_image_size_scene)
+        # image_buffer_scene = np.ndarray((480, 640, 3), dtype=np.uint8, buffer=shm_scene.buf)
     
     parser = argparse.ArgumentParser(description="IP addresses, port, and remote status for eye tracking data reception.")
     parser.add_argument("--local_ip", type=str, default="127.0.0.1", help="Local IP address")
     parser.add_argument("--remote_ip", type=str, default="192.168.1.117", help="Remote IP address")
     parser.add_argument("--port", type=int, default=3428, help="Port number")
-    parser.add_argument("--use_remote", type=bool, default=True, help="Use remote IP? True/False")
+    parser.add_argument("--use_remote", type=bool, default=False, help="Use remote IP? True/False")
 
     args = parser.parse_args()
     
@@ -104,12 +106,12 @@ def main():
 
     # Creating Processes
     if flag_data['glasses'].value == "STONE":
-        process1 = multiprocessing.Process(target=object_detection_process, args=(shared_data, watch_gaze, popup_data, image_buffer, flag_data, image_buffer_scene))
+        process1 = multiprocessing.Process(target=object_detection_process, args=(shared_data, watch_gaze, popup_data, image_buffer, flag_data, shared_array))
         process2 = multiprocessing.Process(target=eye_tracking_process, args=(args.local_ip, args.remote_ip, args.port, args.use_remote, shared_data, popup_data))
         process3 = multiprocessing.Process(target=text_to_speech, args=(watch_gaze, popup_data))
-        process5 = multiprocessing.Process(target=scene_image, args=("127.0.0.1", "192.168.1.117", 3425, True, image_buffer_scene))
+        process5 = multiprocessing.Process(target=scene_image, args=("127.0.0.1", "192.168.1.117", 3425, False, shared_array))
     elif flag_data['glasses'].value == "Nreal":
-        process1 = multiprocessing.Process(target=object_detection_process, args=(shared_data, watch_gaze, popup_data, image_buffer, flag_data, image_buffer_scene))
+        process1 = multiprocessing.Process(target=object_detection_process, args=(shared_data, watch_gaze, popup_data, image_buffer, flag_data, shared_array))
         process2 = multiprocessing.Process(target=eye_tracking_process, args=(args.local_ip, args.remote_ip, args.port, args.use_remote, shared_data, popup_data))
         process3 = multiprocessing.Process(target=text_to_speech, args=(watch_gaze, popup_data))
         process4 = multiprocessing.Process(target=popup_windiow, args=(popup_data, image_buffer, flag_data))

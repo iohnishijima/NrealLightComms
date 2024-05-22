@@ -11,6 +11,9 @@ class EyeTrackingReceiver:
         self.eye_detected = True
         self.shared_data = shared_data
         self.popup_data = popup_data
+        self.blink_begin = False
+        self.blink_end = False
+        self.count_rest = 0
 
         # Initialize ZMQ context and socket
         self.context = zmq.Context()
@@ -58,15 +61,47 @@ class EyeTrackingReceiver:
                 if not self.eye_detected:
                     print("eyes are detected, analyze start")
                     self.eye_detected = True
-                self.shared_data['ID'].value = server_data["ID"]
-                self.shared_data['Timestamp'].value = server_data["Timestamp"]
-                self.shared_data['GazeX'].value = server_data["GazeX"]
-                self.shared_data['GazeY'].value = server_data["GazeY"]
-                self.shared_data['RScore'].value = server_data["RScore"]
-                self.shared_data['LScore'].value = server_data["LScore"]
-                self.shared_data['eyeEvent'].value = server_data["eyeEvent"]
-                self.popup_data['GazeX'].value = server_data["GazeX"]
-                self.popup_data['GazeY'].value = server_data["GazeY"]
+                if server_data['eyeEvent'] == "BB":
+                    self.blink_begin = True
+                elif server_data['eyeEvent'] == "BB":
+                    self.blink_begin = False
+                    self.blink_end = True
+
+                if self.blink_begin == True:
+                    self.shared_data['ID'].value = server_data["ID"]
+                    self.shared_data['Timestamp'].value = server_data["Timestamp"]
+                    self.shared_data['GazeX'].value = None
+                    self.shared_data['GazeY'].value = None
+                    self.shared_data['RScore'].value = server_data["RScore"]
+                    self.shared_data['LScore'].value = server_data["LScore"]
+                    self.shared_data['eyeEvent'].value = server_data["eyeEvent"]
+                    self.popup_data['GazeX'].value = None
+                    self.popup_data['GazeY'].value = None
+                elif self.blink_end == True and self.count_rest < 10:
+                    self.shared_data['ID'].value = server_data["ID"]
+                    self.shared_data['Timestamp'].value = server_data["Timestamp"]
+                    self.shared_data['GazeX'].value = None
+                    self.shared_data['GazeY'].value = None
+                    self.shared_data['RScore'].value = server_data["RScore"]
+                    self.shared_data['LScore'].value = server_data["LScore"]
+                    self.shared_data['eyeEvent'].value = server_data["eyeEvent"]
+                    self.popup_data['GazeX'].value = None
+                    self.popup_data['GazeY'].value = None
+                    self.count_rest += 1
+                elif self.count_rest >= 10:
+                    self.count_rest = 0
+                    self.blink_end = False
+                else:
+                    self.shared_data['ID'].value = server_data["ID"]
+                    self.shared_data['Timestamp'].value = server_data["Timestamp"]
+                    self.shared_data['GazeX'].value = server_data["GazeX"]
+                    self.shared_data['GazeY'].value = server_data["GazeY"]
+                    self.shared_data['RScore'].value = server_data["RScore"]
+                    self.shared_data['LScore'].value = server_data["LScore"]
+                    self.shared_data['eyeEvent'].value = server_data["eyeEvent"]
+                    self.popup_data['GazeX'].value = server_data["GazeX"]
+                    self.popup_data['GazeY'].value = server_data["GazeY"]
+                print(F"{self.shared_data['GazeX'].value}, {self.shared_data['GazeY'].value}")
                 # print(server_data)
                 # print(data)
                 # self.analyze_data(server_data)
